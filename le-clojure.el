@@ -474,22 +474,6 @@ Besides functions, handles specials, keywords, maps, vectors and sets."
       (goto-char (car bnd))))
   (lispy-alt-multiline))
 
-(defun lispy--clojure-debug-step-in ()
-  "Inline a Clojure function at the point of its call."
-  (lispy--clojure-detect-ns)
-  (let* ((e-str (format "(lispy.clojure/debug-step-in\n'%s)"
-                        (lispy--string-dwim)))
-         (str (substring-no-properties
-               (lispy--eval-clojure-1 e-str nil)))
-         (old-session (sesman-current-session 'CIDER)))
-    (lispy-follow)
-    (when (string-match "(clojure.core/in-ns (quote \\([^)]+\\))" str)
-      (setq lispy--clojure-ns (match-string 1 str)))
-    (when (equal (file-name-nondirectory (buffer-file-name)) "lispy-clojure.clj")
-      (sesman-link-session 'CIDER old-session))
-    (lispy--eval-clojure-cider str)
-    (lispy-flow 1)))
-
 (defun lispy-goto-line (line)
   (goto-char (point-min))
   (forward-line (1- line)))
@@ -509,31 +493,6 @@ Besides functions, handles specials, keywords, maps, vectors and sets."
            (set-buffer-modified-p nil)
            (set-auto-mode)
            (current-buffer))))))
-
-(defun lispy-goto-symbol-clojure (symbol)
-  "Goto SYMBOL."
-  (lispy--clojure-detect-ns)
-  (let* ((r (read (lispy--eval-clojure-cider
-                   (format "(lispy.clojure/location '%s)" symbol))))
-         (url (car r))
-         (line (cadr r))
-         archive)
-    (cond
-      ((file-exists-p url)
-       (find-file url)
-       (lispy-goto-line line))
-      ((and (string-match "\\`file:\\([^!]+\\)!/\\(.*\\)\\'" url)
-            (file-exists-p (setq archive (match-string 1 url))))
-       (let ((path (match-string 2 url)))
-         (lispy-find-archive archive path)
-         (lispy-goto-line line)))
-      (t
-       (warn "unexpected: %S" symbol)
-       (cider-find-var symbol)))))
-
-(defun lispy-goto-symbol-clojurescript (symbol)
-  "Goto SYMBOL."
-  (cider-find-var nil symbol))
 
 (defun lispy--clojure-dot-object (&optional bnd)
   (let* ((bnd (or bnd

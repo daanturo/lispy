@@ -181,7 +181,7 @@ situation.
     - <kbd>C</kbd> convolutes
     - <kbd>s</kbd> moves down
     - <kbd>w</kbd> moves up
-- IDE-like features for Elisp, Clojure, Scheme, Common Lisp, Hy, Python and Julia:
+- IDE-like features for some Lisp languages:
     - <kbd>e</kbd> evals
     - <kbd>E</kbd> evals and inserts
     - <kbd>g</kbd> jumps to any tag in the current directory with semantic
@@ -400,7 +400,6 @@ thing.
  <kbd>SPC</kbd> | `lispy-space`
  <kbd>:</kbd>   | `lispy-colon`
  <kbd>^</kbd>   | `lispy-hat`
- <kbd>C-m</kbd> | `lispy-newline-and-indent`
 
 ### Command chaining
 
@@ -505,36 +504,6 @@ evaluation support for:
 - Scheme (via `geiser`)
 - Common lisp (via `slime` or `sly`).
 - Hy (via `comint`).
-- Python (via `comint` and `jedi`).
-- Julia (via `julia-shell`).
-
-**`lispy-describe-inline`**
-
-Bound to <kbd>C-1</kbd>. Show the doc for the current function inline.
-
-<kbd>C-h f</kbd> is fine, but the extra buffer, and having to navigate to a symbol
-is tiresome. <kbd>C-1</kbd> toggles on/off the inline doc for current function.
-No extra buffer necessary:
-
-![screenshot](https://raw.github.com/abo-abo/lispy/master/images/doc-elisp.png)
-
-Here's how it looks for Clojure:
-
-![screenshot](https://raw.github.com/abo-abo/lispy/master/images/doc-clojure.png)
-
-**`lispy-arglist-inline`**
-
-Bound to <kbd>C-2</kbd>. Show arguments for current function inline.
-
-`eldoc-mode` is cool, but it shows you arguments *over there* and
-you're writing *over here*!. No problem, <kbd>C-2</kbd> fixes that:
-
-![screenshot](https://raw.github.com/abo-abo/lispy/master/images/arglist-elisp.png)
-
-As you see, normal, &optional and &rest arguments have each a
-different face. Here's how it looks for Clojure:
-
-![screenshot](https://raw.github.com/abo-abo/lispy/master/images/arglist-clojure.png)
 
 **`lispy-goto`**
 

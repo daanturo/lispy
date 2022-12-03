@@ -26,28 +26,7 @@
 
 (require 'thingatpt)
 
-(if (version< emacs-version "26.1")
-    (progn
-      (defsubst string-trim-left (string &optional regexp)
-        "Trim STRING of leading string matching REGEXP.
-
-REGEXP defaults to \"[ \\t\\n\\r]+\"."
-        (if (string-match (concat "\\`\\(?:" (or regexp "[ \t\n\r]+") "\\)") string)
-            (replace-match "" t t string)
-          string))
-      (defsubst string-trim-right (string &optional regexp)
-        "Trim STRING of trailing string matching REGEXP.
-
-REGEXP defaults to  \"[ \\t\\n\\r]+\"."
-        (if (string-match (concat "\\(?:" (or regexp "[ \t\n\r]+") "\\)\\'") string)
-            (replace-match "" t t string)
-          string))
-      (defsubst string-trim (string &optional trim-left trim-right)
-        "Trim STRING of leading and trailing strings matching TRIM-LEFT and TRIM-RIGHT.
-
-TRIM-LEFT and TRIM-RIGHT default to \"[ \\t\\n\\r]+\"."
-        (string-trim-left (string-trim-right string trim-right) trim-left)))
-  (require 'subr-x))
+(require 'subr-x)
 
 (defgroup lispy-faces nil
   "Font-lock faces for `lispy'."
@@ -137,77 +116,6 @@ The caller of `lispy--show' might use a substitute e.g. `describe-function'."
 (declare-function lispy--bounds-string "lispy")
 
 ;; ——— Commands ————————————————————————————————————————————————————————————————
-(defun lispy--back-to-python-function ()
-  "Move point from function call at point to the function name."
-  (let ((pt (point))
-        bnd)
-    (if (lispy--in-comment-p)
-        (error "Not possible in a comment")
-      (condition-case nil
-          (progn
-            (when (setq bnd (lispy--bounds-string))
-              (goto-char (car bnd)))
-            (up-list -1))
-        (error (goto-char pt)))
-      (unless (looking-at "\\_<")
-        (re-search-backward "\\_<" (line-beginning-position))))))
-
-(defun lispy-arglist-inline ()
-  "Display arglist for `lispy--current-function' inline."
-  (interactive)
-  (save-excursion
-    (if (eq major-mode 'python-mode)
-        (lispy--back-to-python-function)
-      (lispy--back-to-paren))
-    (unless (and (prog1 (lispy--cleanup-overlay)
-                   (when (window-minibuffer-p)
-                     (window-resize (selected-window) -1)))
-                 (= lispy-hint-pos (point)))
-      (cond ((memq major-mode lispy-elisp-modes)
-             (let ((sym (intern-soft (lispy--current-function))))
-               (cond ((fboundp sym)
-                      (setq lispy-hint-pos (point))
-                      (lispy--show (lispy--pretty-args sym))))))
-            ((or (memq major-mode '(cider-repl-mode))
-                 (memq major-mode lispy-clojure-modes))
-             (require 'le-clojure)
-             (setq lispy-hint-pos (point))
-             (lispy--show (lispy--clojure-args (lispy--current-function))))
-
-            ((eq major-mode 'lisp-mode)
-             (require 'le-lisp)
-             (setq lispy-hint-pos (point))
-             (lispy--show (lispy--lisp-args (lispy--current-function))))
-
-            ((eq major-mode 'python-mode)
-             (require 'le-python)
-             (setq lispy-hint-pos (point))
-             (let ((arglist (lispy--python-arglist
-                             (python-info-current-symbol)
-                             (buffer-file-name)
-                             (line-number-at-pos)
-                             (current-column))))
-               (while (eq (char-before) ?.)
-                 (backward-sexp))
-               (lispy--show arglist)))
-
-            (t (error "%s isn't supported currently" major-mode))))))
-
-(defvar lispy--di-window-config nil
-  "Store window configuration before `lispy-describe-inline'.")
-
-(defun lispy--hint-pos ()
-  "Point position for the first column of the hint."
-  (save-excursion
-    (cond ((region-active-p)
-           (goto-char (region-beginning)))
-          ((eq major-mode 'python-mode)
-           (condition-case nil
-               (goto-char (beginning-of-thing 'sexp))
-             (error (up-list -1))))
-          (t
-           (lispy--back-to-paren)))
-    (point)))
 
 (defun lispy--cleanup-overlay ()
   "Delete `lispy-overlay' if it's valid and return t."
@@ -234,94 +142,7 @@ The caller of `lispy--show' might use a substitute e.g. `describe-function'."
 (declare-function cider-sync-request:info "ext:cider-client")
 (declare-function nrepl-dict-get "ext:nrepl-dict")
 
-(defun lispy--docstring (sym)
-  "Get the docstring for SYM."
-  (cond
-    ((memq major-mode lispy-elisp-modes)
-     (setq sym (intern-soft sym))
-     (cond ((fboundp sym)
-            (or (documentation sym)
-                "undocumented"))
-           ((boundp sym)
-            (or (documentation-property
-                 sym 'variable-documentation)
-                "undocumented"))
-           (t "unbound")))
-    ((eq major-mode 'clojurescript-mode)
-     (let (info)
-       (or
-        (and (cider-nrepl-op-supported-p "info")
-             (setq info (cider-sync-request:info sym))
-             (nrepl-dict-get info "doc"))
-        (concat "No doc for " sym))))
-    ((or (memq major-mode lispy-clojure-modes)
-         (memq major-mode '(cider-repl-mode)))
-     (require 'le-clojure)
-     (let ((rsymbol (lispy--clojure-resolve sym)))
-       (string-trim-left
-        (replace-regexp-in-string
-         "^\\(?:-+\n\\|\n*.*$.*@.*\n*\\)" ""
-         (cond ((stringp rsymbol)
-                (lispy--eval-clojure-cider
-                 (format "(with-out-str (clojure.repl/doc %s))" rsymbol)))
-               ((eq rsymbol 'special)
-                (lispy--eval-clojure-cider
-                 (format "(with-out-str (clojure.repl/doc %s))" sym)))
-               ((eq rsymbol 'keyword)
-                "No docs for keywords")
-               ((and (listp rsymbol)
-                     (eq (car rsymbol) 'variable))
-                (cadr rsymbol))
-               (t
-                (or (lispy--describe-clojure-java sym)
-                    (format "Could't resolve '%s" sym))))))))
-    ((eq major-mode 'lisp-mode)
-     (require 'le-lisp)
-     (lispy--lisp-describe sym))
-    ((eq major-mode 'python-mode)
-     (require 'le-python)
-     (if sym
-         (lispy--python-docstring sym)
-       (require 'semantic)
-       (semantic-mode 1)
-       (let ((sym (semantic-ctxt-current-symbol)))
-         (if sym
-             (progn
-               (setq sym (mapconcat #'identity sym "."))
-               (or
-                (lispy--python-docstring sym)
-                (progn
-                  (message "no doc: %s" sym)
-                  nil)))
-           (error "The point is not on a symbol")))))
-    (t
-     (format "%s isn't supported currently" major-mode))))
-
 (declare-function semantic-ctxt-current-symbol "ctxt")
-
-(defun lispy-describe-inline ()
-  "Display documentation for `lispy--current-function' inline."
-  (interactive)
-  (cond ((cl-some
-          (lambda (window)
-            (equal (buffer-name (window-buffer window)) "*lispy-help*"))
-          (window-list))
-         (when (window-configuration-p lispy--di-window-config)
-           (set-window-configuration lispy--di-window-config)))
-        ((eq major-mode 'scheme-mode)
-         (geiser-doc-symbol-at-point))
-        (t
-         (let ((new-hint-pos (lispy--hint-pos)))
-           (if (and (eq lispy-hint-pos new-hint-pos)
-                    (overlayp lispy-overlay))
-               (lispy--cleanup-overlay)
-             (lispy--describe-inline
-              (lispy--docstring (lispy--current-function))
-              new-hint-pos))))))
-
-(declare-function lispy--python-docstring "le-python")
-(declare-function lispy--python-arglist "le-python")
-(declare-function python-info-current-symbol "python")
 
 ;; ——— Utilities ———————————————————————————————————————————————————————————————
 (defun lispy--arglist (symbol)
@@ -386,7 +207,6 @@ The caller of `lispy--show' might use a substitute e.g. `describe-function'."
             (overlay-put lispy-overlay 'display str)
             (overlay-put lispy-overlay 'after-string "")
             (put 'lispy-overlay 'last-point last-point)))
-      (setq lispy--di-window-config (current-window-configuration))
       (save-selected-window
         (pop-to-buffer (get-buffer-create "*lispy-help*"))
         (let ((inhibit-read-only t))

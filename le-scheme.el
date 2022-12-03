@@ -67,9 +67,6 @@
             (t
              result-str)))))
 
-(defun lispy-goto-symbol-scheme (symbol)
-  (geiser-edit-symbol (make-symbol symbol)))
-
 (provide 'le-scheme)
 
 ;;; le-scheme.el ends here

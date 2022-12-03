@@ -2,10 +2,7 @@
   (undercover "lispy.el" "lispy-inline.el"))
 (require 'lispy nil t)
 (require 'clojure-mode nil t)
-(require 'le-python)
-(if (version< emacs-version "24.4.1")
-    (load-library "cl-indent")
-  (require 'cl-indent))
+(require 'cl-indent)
 (custom-set-variables
  '(indent-tabs-mode nil))
 (setq lisp-indent-function 'common-lisp-indent-function)
@@ -62,8 +59,7 @@
 
 (defmacro lispy-with-v (mode-ext in &rest body)
   (declare (indent 2))
-  (let ((mode (cdr (assoc mode-ext '((py . python-mode)
-                                     (el . emacs-lisp-mode)
+  (let ((mode (cdr (assoc mode-ext '((el . emacs-lisp-mode)
                                      (scm . scheme-mode)
                                      (clj . clojure-mode))))))
     `(with-temp-buffer
@@ -495,63 +491,6 @@ Insert KEY if there's no command."
                    "((a) (b) (c)|)"))
   (should (string= (lispy-with "((a) (b) (c))|" "d")
                    "|((a) (b) (c))")))
-
-(ert-deftest lispy-kill ()
-  (should (string= (lispy-with "\n\n|(defun foo ()\n    )" (lispy-kill))
-                   "\n\n|"))
-  ;; while ahead of defun, and there's a comment before, move there
-  (should (string= (lispy-with "\n;comment\n|(defun foo ()\n    )" (lispy-kill))
-                   "\n;comment\n|"))
-  (should (string= (lispy-with "(|(a) (b) (c))" "\C-k")
-                   "(|)"))
-  (should (string= (lispy-with "((a)\n| (b)\n (c))" "\C-k")
-                   "((a)\n|\n (c))"))
-  (should (string= (lispy-with "((a) |(b) (c))" "\C-k")
-                   "((a) |)"))
-  (should (string= (lispy-with "((a) (b) |(c))" "\C-k")
-                   "((a) (b) |)"))
-  (should (string= (lispy-with "((a)|\n (b) (c))" "\C-k")
-                   "((a)| (b) (c))"))
-  (should (string= (lispy-with "((a)|\n (b) (c))" "\C-k\C-k")
-                   "((a)|)"))
-  (should (string= (lispy-with "(a b c)\n(|)" "\C-k")
-                   "(a b c)\n|"))
-  (should (string= (lispy-with "(foo\nbar | baz  )" "\C-k")
-                   "(foo\nbar |)"))
-  (should (string= (lispy-with "[1 |2 3]" "\C-k")
-                   "[1 |]"))
-  (should (string= (lispy-with "(looking-at |\"foo\")" "\C-k")
-                   "(looking-at |)"))
-  (should (string= (lispy-with "(looking-at |\"foo\" (bar))" "\C-k")
-                   "(looking-at |)"))
-  (should (string= (lispy-with "(list |\"foo\"\n      (bar))" "\C-k")
-                   "(list |\n      (bar))"))
-  (should (string= (lispy-with "(looking-at \"|;\")" "\C-k")
-                   "(looking-at \"|\")"))
-  (should (string= (lispy-with "(foo)|   ;bar\n(baz)" "\C-k")
-                   "(foo)|\n(baz)"))
-  (should (string= (lispy-with "|#[foo\n  bar]" "\C-k")
-                   "|"))
-  (should (string= (lispy-with "|#(foo\n  bar)" "\C-k")
-                   "|"))
-  (should (string= (lispy-with clojure "{:a 1 |:b 2}" "\C-k")
-                   "{:a 1 |}"))
-  (should (string= (lispy-with "|\"multiline\nstring\"\n(expr)" "\C-k")
-                   "|\n(expr)"))
-  (should (string= (lispy-with "(defun lispy-kill-test ()\n  |(foo\n    bar baz)\n  (1 2 3)\n  (a b c))" "\C-k")
-                   "(defun lispy-kill-test ()\n  |\n  (1 2 3)\n  (a b c))"))
-  (should (string= (lispy-with "(defun test ()\n  |(foo)) ;; comment" "\C-k")
-                   "(defun test ()\n  |) ;; comment"))
-  (should (string= (lispy-with "(progn\n  |(looking-at-p \"\\(\"))" "\C-k")
-                   "(progn\n  |)"))
-  (should (string= (lispy-with "(progn\n|  ;;  Comment\n  (new-code))" "\C-k")
-                   "(progn\n|\n  (new-code))"))
-  (should (equal (lispy-with "(progn\n  |\"test\" \n  (bar))"
-                             "\C-k")
-                 "(progn\n  |\n  (bar))"))
-  (should (equal (lispy-with "(progn\n|  \"docs\" ;;  0\n  (one)  ;;  1\n  )"
-                             "\C-k")
-                 "(progn\n|\n  (one)  ;;  1\n  )")))
 
 (ert-deftest lispy-yank ()
   (should (string= (lispy-with "\"|\"" (kill-new "foo") (lispy-yank))
@@ -1605,27 +1544,6 @@ Insert KEY if there's no command."
     (should (string= (lispy-with "(foo                                    ; |\n )" ";")
                      "(foo ;; |\n )"))))
 
-(ert-deftest lispy-move-end-of-line ()
-  ;; (should (string= (lispy-with "(foo (bar #\\x \"|baz \\\\ quux\") zot)"
-  ;;                              (move-end-of-line 1))
-  ;;                  "(foo (bar #\\x \"baz \\\\ quux\") zot)|"))
-  ;; (should (string= (lispy-with "(foo (bar #\\x \"|baz \\\\ quux\") zot)" "\C-e\C-e")
-  ;;                  "(foo (bar #\\x \"baz \\\\ quux\"|) zot)"))
-  ;; (should (string= (lispy-with "\"fo|o\nbar\" baz"
-  ;;                              (lispy-move-end-of-line)
-  ;;                              (lispy-move-end-of-line))
-  ;;                  "\"foo\nbar\"| baz"))
-  (should (string= (lispy-with "\"foo|\nbar\" baz" "\C-e")
-                   "\"foo\nbar\"| baz")))
-
-(ert-deftest lispy-move-beginning-of-line ()
-  (should (string= (lispy-with "(mapc\n (lambda (x) (* |x x))\n '(1 2 3))" (kbd "C-a"))
-                   "(mapc\n| (lambda (x) (* x x))\n '(1 2 3))"))
-  (should (string= (lispy-with "(mapc\n (lambda (x) (* |x x))\n '(1 2 3))"
-                               (kbd "C-a")
-                               (kbd "C-a"))
-                   "(mapc\n |(lambda (x) (* x x))\n '(1 2 3))")))
-
 (ert-deftest lispy-string-oneline ()
   (should (string= (lispy-with "\"foo\nb|ar\n\"" (lispy-string-oneline))
                    "\"foo\\nbar\\n\"|")))
@@ -2324,83 +2242,11 @@ Insert KEY if there's no command."
   (should (string= (lispy-with clojure "(list \\(|)" " ")
                    "(list \\( |)")))
 
-(ert-deftest lispy-kill-word ()
-  (should (string= (lispy-with "|  (require 'cl)" (kbd "M-d"))
-                   "  (| 'cl)"))
-  (should (string= (lispy-with "|  \"(require 'cl)\"" (kbd "M-d"))
-                   "  \"(| 'cl)\""))
-  (should (string= (lispy-with "\"(require |'cl)\"" (kbd "M-d"))
-                   "\"(require '|)\""))
-  (should (string= (lispy-with "\"(require '|)\"" (kbd "M-d"))
-                   "\"(require ')\"|"))
-  (should (string= (lispy-with "(foo \"|bar\")" (kbd "M-d"))
-                   "(foo \"|\")"))
-  (should (string= (lispy-with "(foo |\"bar\")" (kbd "M-d"))
-                   "(foo \"|\")"))
-  (should (string= (lispy-with "\"(require |'cl)\"" (lispy-kill-word -1))
-                   "\"(|'cl)\""))
-  (should (string= (lispy-with "(defun |test)" (kbd "M-d"))
-                   "(defun |)"))
-  (should (string= (lispy-with "\"this is a |test\"" (kbd "M-d"))
-                   "\"this is a |\"")))
-
-(ert-deftest lispy-backward-kill-word ()
-  (should (string= (lispy-with "(require 'cl)|" (kbd "M-DEL"))
-                   "(require '|)"))
-  (should (string= (lispy-with "(require 'cl)|" (kbd "M-DEL") (kbd "C-y"))
-                   "(require 'cl|)"))
-  (should (string= (lispy-with "(eval-after-load |)" (kbd "M-DEL"))
-                   "(eval-after-|)"))
-  (should (string= (lispy-with "(eval-after-load |)"
-                               (kbd "M-DEL") (kbd "M-DEL"))
-                   "(eval-|)"))
-  (should (string= (lispy-with "(eval-after-load |)"
-                               (kbd "M-DEL") (kbd "M-DEL") (kbd "C-y"))
-                   "(eval-after-load |)"))
-  (should (string= (lispy-with "(eval-after-load \"foo\")|" (kbd "M-DEL"))
-                   "(eval-after-load \"|\")"))
-  (should (string= (lispy-with "(eval-after-load \"|\")" (kbd "M-DEL"))
-                   "(eval-after-| \"\")"))
-  (should (string= (lispy-with "\"foo bar   \"|" (kbd "M-DEL"))
-                   "\"foo |\""))
-  (should (string= (lispy-with "\"\\nfoo\"|" (kbd "M-DEL"))
-                   "\"|\""))
-  (should (string= (lispy-with "\"\\nfoo\"|" (kbd "M-DEL"))
-                   "\"|\""))
-  (should (string= (lispy-with "\"Five is right| out\"" (kbd "M-DEL"))
-                   "\"Five is | out\""))
-  (should (string= (lispy-with "\"Five is right| out\""
-                               (kbd "M-DEL")
-                               (kbd "M-DEL"))
-                   "\"Five | out\""))
-  (should (string= (lispy-with "(nil nil |:color blue)" (kbd "M-DEL"))
-                   "(nil |:color blue)"))
-  (should (string= (lispy-with "\"\\n |\"" (kbd "M-DEL"))
-                   "\"|\"")))
-
-(ert-deftest lispy-kill-sentence ()
-  (should (string= (lispy-with "(progn|\n  (foo)\n  (bar))" (kbd "M-k"))
-                   "(progn|)"))
-  (should (string= (lispy-with "(message |\"foo bar baz\")" (kbd "M-k"))
-                   "(message |)"))
-  (should (string= (lispy-with "(progn |(foo bar baz))" (kbd "M-k"))
-                   "(progn |)"))
-  (should (string= (lispy-with "(message \"Then shalt thou count to three|, no more, no less.
-                                         Three shall be the number thou shalt count, and the number of the
-                                         counting shall be three.\")" (kbd "M-k"))
-                   "(message \"Then shalt thou count to three|\")")))
-
 (ert-deftest lispy-hash ()
   (should (string= (lispy-with clojure "foo|" "#")
                    "foo #|"))
   (should (string= (lispy-with clojure "foo|" "##")
                    "foo#|")))
-
-(ert-deftest lispy-newline-and-indent-plain ()
-  (should (string= (lispy-with "(mapc #'|say-ni\n      knights)" (kbd "RET"))
-                   "(mapc\n #'|say-ni\n knights)"))
-  (should (string= (lispy-with "(mapc #'|say-ni\n      knights)" (kbd "C-j"))
-                   "(mapc\n #'|say-ni\n knights)")))
 
 (ert-deftest lispy-knight-down ()
   (should (string= (lispy-with "|(defun foo ()\n  (bar)\n  (baz))"
@@ -3125,15 +2971,6 @@ Insert KEY if there's no command."
                                (execute-kbd-macro "xdhelper"))
                    "(defun helper (y z)\n  (list y z y z))\n\n(defun foo (x)\n  (helper (* x x) (+ x x))|)")))
 
-
-(ert-deftest lispy-debug-step-in ()
-  (should (equal (lispy-with-v el
-                     "|(mapcar\n (lambda (x))\n (mapcar\n  (lambda (y) (expt y 3))\n  (number-sequence 10 42)))"
-                   (setq x "42")
-                   (lispy-debug-step-in)
-                   x)
-                 1000)))
-
 (ert-deftest lispy--pretty-args ()
   (should (equal (lispy--pretty-args 'dotimes)
                  #("(dotimes (var count [result]) body...)"
@@ -3154,39 +2991,6 @@ Insert KEY if there's no command."
                    8 14 (face lispy-face-req-nosel)
                    15 24 (face lispy-face-opt-nosel)
                    25 34 (face lispy-face-opt-nosel)))))
-
-(ert-deftest lispy-eval-python-str ()
-  (require 'le-python)
-  (should (equal (lispy-with-v py
-                     "\nif cond1:\n   |if cond2:\n        expr1\n        if cond3:\n            expr2\n        else:\n            expr3\n    else:\n        expr4\nelse:\n    expr5"
-                   (lispy-eval-python-str))
-                 "if cond2:\n     expr1\n     if cond3:\n         expr2\n     else:\n         expr3\n else:\n     expr4"))
-  (should (equal (lispy-with-v py
-                     "|@up_down\ndef greet(name):\n    return \"my oh my, {}\".format(name)\n\ndef other():\n    pass"
-                   (let ((forward-sexp-function nil))
-                     (lispy-eval-python-str)))
-                 "@up_down\ndef greet(name):\n    return \"my oh my, {}\".format(name)"))
-  (unless (version< emacs-version "24.4.1")
-    (should (equal (progn
-                     ;; skip initialization msg
-                     (lispy--eval-python-plain "")
-                     (sit-for 0.1)
-                     (lispy--eval-python "print(\"one\")\nprint(\"two\")\nx = 2 + 1"))
-                   "x = 3"))))
-
-(ert-deftest lispy-python-symbol-bnd ()
-  (should (equal (lispy-with-v py "def test_detector ():\n    detector.getChannelCount ().|"
-                   (lispy--string-dwim
-                    (lispy-python-symbol-bnd)))
-                 "detector.getChannelCount ()."))
-  (should (equal (lispy-with-v py "def test_detector ():\n    detector.getDetectorProperties ().getOwner ().|"
-                   (lispy--string-dwim
-                    (lispy-python-symbol-bnd)))
-                 "detector.getDetectorProperties ().getOwner ()."))
-  (should (equal (lispy-with-v py "foo().bboxes[0].|"
-                   (lispy--string-dwim
-                    (lispy-python-symbol-bnd)))
-                 "foo().bboxes[0].")))
 
 (ert-deftest lispy-eval-str-racket ()
   ;; (let ((geiser-active-implementations '(racket)))
@@ -3215,24 +3019,6 @@ Insert KEY if there's no command."
               "{0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10, 11: 11, 12: 12, 13: 13, 14: 14, 15: 15, 16: 16, 17: 17, 18: 18, 19: 19}")
              (buffer-string))
            "# =>\n# {0: 0,\n#  1: 1,\n#  2: 2,\n#  3: 3,\n#  4: 4,\n#  5: 5,\n#  6: 6,\n#  7: 7,\n#  8: 8,\n#  9: 9,\n#  10: 10,\n#  11: 11,\n#  12: 12,\n#  13: 13,\n#  14: 14,\n#  15: 15,\n#  16: 16,\n#  17: 17,\n#  18: 18,\n#  19: 19}")))
-
-(ert-deftest lispy--python-eval-string-dwim ()
-  ;; (should (string= (lispy--python-eval-string-dwim "x in d2.values()")
-  ;;                  "x = list (d2.values())[0]\nprint ((x))"))
-  (should (string= (lispy--python-eval-string-dwim "sum(int(x) for x in d2.values())")
-                   "sum(int(x) for x in d2.values())"))
-  (should (string= (lispy--python-eval-string-dwim "sum(int(x) for x in d2.values())")
-                   "sum(int(x) for x in d2.values())"))
-  ;; (should (string= (lispy--python-eval-string-dwim "(x, i) in enumerate(lvl_npoints)")
-  ;;                  "(x, i) = list (enumerate(lvl_npoints))[0]\nprint (((x, i)))"))
-  (should (string= (lispy--python-eval-string-dwim "asdf_123")
-                   "print(repr((asdf_123)))"))
-  (should (string= (let ((this-command 'lispy-eval))
-                     (lispy--python-eval-string-dwim "asdf_123"))
-                   "lp.pprint((asdf_123))"))
-  (should (string= (let ((this-command 'lispy-eval))
-                     (lispy--python-eval-string-dwim "x[\"foo\"] = 2 + 2"))
-                   "x[\"foo\"] = 2 + 2\nlp.pprint((x[\"foo\"]))")))
 
 (ert-deftest lispy-extended-eval-str ()
   ;; (should (string=
