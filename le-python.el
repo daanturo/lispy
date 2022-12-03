@@ -50,9 +50,6 @@ Stripping them will produce code that's valid for an eval."
                     (point))
                 (region-beginning))
               (region-end)))
-            ((and (looking-at lispy-outline)
-                  (looking-at lispy-outline-header))
-             (lispy--bounds-outline))
             ((and (looking-at "@") (bolp))
              (setq bnd (cons (point)
                              (save-excursion

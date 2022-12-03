@@ -203,7 +203,6 @@ Some pictures [here](#ide-like-features).
     - <kbd>O</kbd> formats the code into one line
     - <kbd>M</kbd> formats the code into multiple lines
 - Misc. bindings:
-    - outlines navigation/folding (<kbd>J</kbd>, <kbd>K</kbd>, <kbd>I</kbd>, <kbd>i</kbd>)
     - narrow/widen (<kbd>N</kbd>, <kbd>W</kbd>)
     - `ediff` (<kbd>b</kbd>, <kbd>B</kbd>)
     - `ert` (<kbd>T</kbd>)
@@ -543,30 +542,6 @@ Use completion to select a symbol to jump to from all top-level symbols in the i
 Works out of the box for Elisp, Scheme and Common Lisp.
 [clojure-semantic](https://github.com/kototama/clojure-semantic) is
 required for Clojure.
-
-**`lispy-eval`**
-
-There's a feature similar to `ipython-notebook`. Evaluating an Emacs
-outline will evaluate all of the outline's code and echo the result of
-the last expression. When an outline ends with a colon (`:`), the
-result will instead be inserted into the buffer. If the evaluation
-result changes for whatever reason, it will be replaced after each
-subsequent <kbd>e</kbd>.
-
-Python, Clojure, and Julia currently have a slightly better notebook
-support, pressing <kbd>e</kbd> on the parent outline will evaluate all
-the children outlines sequentially. This allows to arrange scripts
-hierarchically, with relatively few top-level outlines and relatively
-many total outlines. Each outline's output can be examined by adding a
-`:` to the title of the outline.
-
-The following example shows a buffer before and after pressing <kbd>e</kbd>.
-
-![lispy-python-notebook.png](https://raw.githubusercontent.com/wiki/abo-abo/lispy/images/lispy-python-notebook.png)
-
-There is one top-level outline, with one level-2 child, which in turn
-has a four level-3 children. Three of these children end in `:`, so
-their output will be updated after the eval.
 
 # Demos
 

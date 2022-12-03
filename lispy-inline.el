@@ -436,7 +436,6 @@ The caller of `lispy--show' might use a substitute e.g. `describe-function'."
 (provide 'lispy-inline)
 
 ;;; Local Variables:
-;;; outline-regexp: ";; ———"
 ;;; End:
 
 ;;; lispy-inline.el ends here

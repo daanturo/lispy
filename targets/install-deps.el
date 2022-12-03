@@ -14,8 +14,7 @@
     helm
     projectile
     find-file-in-project
-    undercover
-    zoutline))
+    undercover))
 
 (defun package-install-packages (packages)
   (setq melpa-stable (getenv "MELPA_STABLE"))

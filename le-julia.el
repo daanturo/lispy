@@ -45,10 +45,6 @@
                 (line-beginning-position)
                 (point))))
             "" (lispy--string-dwim)))
-          ((looking-at lispy-outline)
-           (string-trim-right
-            (lispy--string-dwim
-             (lispy--bounds-dwim))))
           ((lispy-bolp)
            (lispy--string-dwim
             (lispy--bounds-c-toplevel)))

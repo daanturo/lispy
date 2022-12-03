@@ -123,7 +123,6 @@ Insert KEY if there's no command."
                       (assoc 'lispy-other-mode (minor-mode-key-binding key))))))
     (if (or (and cmd (or (looking-at lispy-left)
                          (lispy-looking-back lispy-right)
-                         (looking-at lispy-outline)
                          (looking-at ";;")
                          (region-active-p)
                          (and (bolp) (looking-at ";"))))
@@ -1391,10 +1390,7 @@ Insert KEY if there's no command."
   (unless (version<= emacs-version "24.3.1")
 
     (should (string= (lispy-with ";;; b\n(bar)\n;;; c\n(baz)\n|;;; a\n(foo)" "w")
-                     ";;; b\n(bar)\n|;;; a\n(foo)\n;;; c\n(baz)"))
-    (should (string= (let ((lispy-outline ";;;"))
-                       (lispy-with ";;; b\n(bar)\n;;; c\n(baz)\n|;;; a\n(foo)" "2w"))
-                     "|;;; a\n(foo)\n;;; b\n(bar)\n;;; c\n(baz)")))
+                     ";;; b\n(bar)\n|;;; a\n(foo)\n;;; c\n(baz)")))
   (should (string= (lispy-with "(sexp (one)\n      ;; comment\n      |(two))" "w")
                    "(sexp (one)\n      |(two)\n      ;; comment\n      )")))
 
@@ -2242,96 +2238,6 @@ Insert KEY if there's no command."
                                (lispy-map-done))
                    "(+ (let |((three (1 2)))\n     three) 3)")))
 
-(ert-deftest lispy-unbind-variable ()
-  ;; :expected-result :fail
-;;   (should (string= (lispy-with "(let ((x 1)\n      |(y 2))\n  (+ x y))"
-;;                                (lispy-unbind-variable))
-;;                    "(let (|(x 1))\n  (+ x 2))"))
-;;   (should (string=
-;;            (lispy-flet (recenter (&optional x))
-;;              (lispy-with "
-;; (defun foobar ()
-;;   (let (|(x 10)
-;;          (y 20)
-;;          (z 30))
-;;     (foo1 x y z)
-;;     (foo2 x z y)
-;;     (foo3 y x z)
-;;     (foo4 y z x)
-;;     (foo5 z x y)
-;;     (foo6 z y x)))"
-;;                          (lispy-unbind-variable)))
-;;            "
-;; (defun foobar ()
-;;   (let (|(y 20)
-;;         (z 30))
-;;     (foo1 10 y z)
-;;     (foo2 10 z y)
-;;     (foo3 y 10 z)
-;;     (foo4 y z 10)
-;;     (foo5 z 10 y)
-;;     (foo6 z y 10)))"))
-;;   (should (string=
-;;            (lispy-flet (recenter (&optional x))
-;;              (lispy-with "
-;; (defun foobar ()
-;;   (let (|(x 10)
-;;          (y 20)
-;;          (z 30))
-;;     (foo1 x y z)
-;;     (foo2 x z y)
-;;     (foo3 y x z)
-;;     (foo4 y z x)
-;;     (foo5 z x y)
-;;     (foo6 z y x)))"
-;;                          (lispy-unbind-variable)
-;;                          (lispy-unbind-variable)))
-;;            "
-;; (defun foobar ()
-;;   (let (|(z 30))
-;;     (foo1 10 20 z)
-;;     (foo2 10 z 20)
-;;     (foo3 20 10 z)
-;;     (foo4 20 z 10)
-;;     (foo5 z 10 20)
-;;     (foo6 z 20 10)))"))
-;;   (should (string=
-;;            (lispy-flet (recenter (&optional x))
-;;              (lispy-with "
-;; (defun foobar ()
-;;   (foo)
-;;   (let (|(x 10))
-;;     (+ x x x))
-;;   (bar))"
-;;                          (lispy-unbind-variable)))
-;;            "
-;; (defun foobar ()
-;;   (foo)
-;;   |(+ 10 10 10)
-;;   (bar))"))
-;;   (should (string=
-;;            (lispy-flet (recenter (&optional x))
-;;              (lispy-with clojure "
-;; (defn foobar []
-;;   (let [&x| 10 y 20 z 30]
-;;     (+ 1 x y z)
-;;     (+ 2 x z y)
-;;     (+ 3 y x z)
-;;     (+ 4 y z x)
-;;     (+ 5 z x y)
-;;     (+ 6 z y x)))"
-;;                          (lispy-unbind-variable)))
-;;            "
-;; (defn foobar []
-;;   (let |[y 20 z 30]
-;;     (+ 1 10 y z)
-;;     (+ 2 10 z y)
-;;     (+ 3 y 10 z)
-;;     (+ 4 y z 10)
-;;     (+ 5 z 10 y)
-;;     (+ 6 z y 10)))"))
-  )
-
 
 (ert-deftest lispy-other-space ()
   (should (string= (lispy-with "(foo (bar (baz)|))"
@@ -2383,16 +2289,6 @@ Insert KEY if there's no command."
   (should (string= (lispy-with ";; foo|"
                                (lispy-alt-line))
                    ";; foo\n|")))
-
-(ert-deftest lispy-outline-add ()
-  (should (string= (lispy-with "|;;* Intro" "a")
-                   ";;* Intro\n;;* |")))
-
-(ert-deftest lispy-outline-add ()
-  (should (string= (lispy-with "(quote ~foo|)" "~")
-                   "(quote ~~foo|)"))
-  (should (string= (lispy-with "(quote ~~foo|)" "~")
-                   "(quote ~foo|)")))
 
 (ert-deftest lispy-space ()
   (should (string= (lispy-with "(|foo" " ")
