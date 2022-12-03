@@ -9,6 +9,9 @@
    alt="lispy logo"/>
 </p>
 
+Fork of [abo-abo/lispy](https://github.com/abo-abo/lispy) which tries to
+simplify it.
+
 > short and sweet LISP editing
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc/generate-toc again -->
