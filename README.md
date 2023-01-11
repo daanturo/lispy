@@ -12,6 +12,11 @@
 Fork of [abo-abo/lispy](https://github.com/abo-abo/lispy) which tries to
 simplify it.
 
+List of current changes:
+- Some of my patches
+- Removed outline handling, which is quite irrelevant to editing Lisp code and better be handled by another package as overriding `outline-regexp` and friends is a bit intrusive; also free from loading and installing `zoutline.el`, which in turn loads `org.el` and becoming a significant performance hog at loading time and/or Emacs startup
+- Removed supported for non-Lisp languages and focus only on editing Lisp dialects with symbolic expressions as the primary source code structure
+
 > short and sweet LISP editing
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc/generate-toc again -->
