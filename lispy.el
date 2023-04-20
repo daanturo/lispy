@@ -144,6 +144,8 @@
 (declare-function 'comint-mode "comint" (&optional arg))
 (declare-function 'comint-filename-completion "comint" ())
 
+(autoload #'hydra-set-property "hydra")
+
 (defsubst lispy-looking-back (regexp)
   "Forward to (`looking-back' REGEXP)."
   (looking-back regexp (line-beginning-position)))
